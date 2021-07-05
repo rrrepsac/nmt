@@ -13,4 +13,4 @@ def main():
                                 # 2, dim*4, 50,
                                 # 0., 0.)
 if __name__ == '__main__':
-    main()
+    # main()
