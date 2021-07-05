@@ -78,7 +78,7 @@ def sort_parallel_corpus(from_list, to_list):
 
     
 class EN_PL_parallel:
-    def __init__(self, path, window, vocab_size=10000, embedding_dim=64, train_embed=True):
+    def __init__(self, path, window, vocab_size=10000, embedding_dim=64, epoch_train_embed=0):
         path = Path(path)
         self.vocab_dtype = torch.int16
         if vocab_size > (2**15 - 1):
@@ -92,14 +92,12 @@ class EN_PL_parallel:
         self.from_ds = BPE_ds(from_corpus_txt, from_bpe_model, window, vocab_size)
         self.cbow_from = CBOW(self.from_ds.bpe.vocab_size(), window_size=window,
         embed_size=embedding_dim, hidden_size=embedding_dim)
-        if train_embed:
-            timing(train_cbow)(self.cbow_from, self.from_ds, epoch_number=3)
+        timing(train_cbow)(self.cbow_from, self.from_ds, epoch_number=epoch_train_embed)
 
         self.to_ds = BPE_ds(to_corpus_txt, to_bpe_model, window, vocab_size)
         self.cbow_to = CBOW(self.to_ds.bpe.vocab_size(), window_size=window,
         embed_size=embedding_dim, hidden_size=embedding_dim)
-        if train_embed:
-            timing(train_cbow)(self.cbow_to, self.to_ds, epoch_number=3)
+        timing(train_cbow)(self.cbow_to, self.to_ds, epoch_number=epoch_train_embed)
 
         self.from_list = {'train' : [], 'test' : [], 'valid' : []}
         self.to_list = {'train' : [], 'test' : [], 'valid' : []}
