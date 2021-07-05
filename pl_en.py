@@ -9,7 +9,7 @@ from tokenizer import BPE_ds, CBOW, train_cbow
 import torch
 from torch import nn
 from collections import Counter
-from statistics import quantiles
+# from statistics import quantiles
 import math
 
 from model import LanguageTransformer
@@ -156,12 +156,12 @@ class EN_PL_parallel:
         with open(from_filename, 'r') as f:
             from_list = [line.strip() for line in f]
         from_list = self.from_ds.encode(from_list)
-        timer.get(f'{quantiles([len(s) for s in from_list], n=40)}')
+        # timer.get(f'{quantiles([len(s) for s in from_list], n=40)}')
 
         with open(to_filename, 'r') as f:
             to_list = [line.strip() for line in f]
         to_list = self.to_ds.encode(to_list)
-        timer.get(f'{quantiles([len(s) for s in to_list], n=40)}')
+        # timer.get(f'{quantiles([len(s) for s in to_list], n=40)}')
 
         max_seq_len = 50
         good_list = [i for i, s in enumerate(from_list) if len(s) < max_seq_len and len(to_list[i]) < max_seq_len - 2]
@@ -198,20 +198,25 @@ class LT(nn.Module):
         pass
 
 def main():
-    prepare_corpus('pl-en', 40000)
+    prepare_corpus('pl-en', 3000)
     window = 3
     dim = 64
-    en_pl = EN_PL_parallel('.', window,10000, embedding_dim=dim, train_embed=False)
+    en_pl = EN_PL_parallel('.', window,1500, embedding_dim=dim, train_embed=True)
     # model = nn.Transformer(dim, 2, 2, 2, dim*4, batch_first=False)
     vocab_size = en_pl.from_ds.bpe.vocab_size()
-    model = LanguageTransformer(vocab_size, dim, 2, 2,
-                                2, dim*4, 50,
+    model = LanguageTransformer(vocab_size, dim, 1, 1,
+                                1, dim*2, 60,
                                 0., 0.)
-
     # Use Xavier normal initialization in the transformer
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_normal_(p)
+    model.embed_src.weight = en_pl.cbow_from.embeddings.weight
+    model.embed_tgt.weight = en_pl.cbow_to.embeddings.weight
+    model.fc.weight = en_pl.cbow_to.hidden_to_vocab.weight
+    model.embed_src.requires_grad_(False)
+    model.embed_tgt.requires_grad_(False)
+    model.fc.requires_grad_(False)
     loss_f = nn.CrossEntropyLoss()#ignore_index=0)
     # optim = torch.optim.Adam(list(model.parameters() + list(en_pl.cbow_from.embeddings.parameters()) + \
     # list(en_pl.cbow_to.embeddings.parameters()) + list(en_pl.cbow_to.hidden_to_vocab.parameters()
